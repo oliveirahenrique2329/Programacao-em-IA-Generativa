@@ -1,58 +1,36 @@
-import tensorflow as tf
-from tensorflow.keras import Sequential
-from tensorflow.keras.layers import Dense
-import pandas as pd
-import numpy as np
+import streamlit as st
+import nltk
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
-# 1. Preparação dos Dados
-# Criando o DataFrame fornecido
-estudos = pd.DataFrame({
-    'notas': [1, 2, 4, 6, 8, 10],
-    'horas': [2, 4, 5, 7, 9, 10]
-})
+# Download do léxico do VADER
+nltk.download('vader_lexicon', quiet=True)
 
-# Separando as variáveis preditoras (features) e o alvo (target)
-# No TensorFlow, é uma boa prática usar arrays numpy do tipo float32
-X = np.array(estudos['horas'], dtype=float)
-y = np.array(estudos['notas'], dtype=float)
+# Inicializa o analisador de sentimentos
+sia = SentimentIntensityAnalyzer()
 
-print("Dados de entrada (Horas):", X)
-print("Dados de saída (Notas):", y)
-print("-" * 40)
+# Título do aplicativo
+st.title("Sentiment Analysis App")
 
-# 2. Definição do Modelo (Arquitetura)
-# O Sequential agrupa uma pilha de camadas lineares em sequência.
-# Como é uma regressão linear simples, usamos uma única camada densa (Dense) 
-# com 1 neurônio e 1 dado de entrada (input_shape=[1]).
-modelo = Sequential([
-    Dense(units=1, input_shape=[1])
-])
+# Campo de texto para entrada em inglês
+texto = st.text_area("Enter text in English:", "I absolutely love learning new technologies! This app is amazing.")
 
-# 3. Compilação do Modelo
-# Precisamos definir o otimizador (como o modelo ajusta os pesos) e a função de perda (erro).
-# 'sgd' = Stochastic Gradient Descent (Gradiente Descendente Estocástico)
-# 'mean_squared_error' = Erro Quadrático Médio, ideal para problemas de regressão.
-modelo.compile(
-    optimizer='sgd', 
-    loss='mean_squared_error'
-)
-
-# Exibindo o resumo da arquitetura do modelo
-modelo.summary()
-print("-" * 40)
-
-# 4. Treinamento (Fit)
-# Treinamos o modelo por 500 épocas (voltas completas nos dados) 
-# verbose=0 oculta a barra de progresso para deixar o output mais limpo.
-print("Treinando o modelo...")
-historico = modelo.fit(X, y, epochs=500, verbose=0)
-print("Treinamento concluído!")
-print("-" * 40)
-
-# 5. Realizando Predições
-# Vamos testar o modelo prevendo a nota para um aluno que estudou 6 horas
-horas_teste = np.array([6.0], dtype=float)
-previsao = modelo.predict(horas_teste)
-
-print(f"Previsão para {horas_teste[0]} horas de estudo:")
-print(f"Nota prevista: {previsao[0][0]:.2f}")
+# Botão para disparar a análise
+if st.button("Analyze Sentiment"):
+    if texto.strip() != "":
+        # Calcula as pontuações de sentimento
+        scores = sia.polarity_scores(texto)
+        compound = scores['compound']
+        
+        # Define a classificação do sentimento com base no score compound
+        if compound >= 0.05:
+            sentimento = "Positive 😊"
+        elif compound <= -0.05:
+            sentimento = "Negative 😡"
+        else:
+            sentimento = "Neutral 😐"
+        
+        # Exibe a classificação e a pontuação compound
+        st.write(f"**Sentiment:** {sentimento}")
+        st.write(f"**Compound Score:** {compound:.4f}")
+    else:
+        st.warning("Please enter some text to analyze.")
